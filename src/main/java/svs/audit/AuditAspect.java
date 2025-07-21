@@ -23,11 +23,18 @@ public class AuditAspect {
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         String methodName = joinPoint.getSignature().toShortString();
         Object[] args = joinPoint.getArgs();
+        String argsString = Arrays.toString(args).toLowerCase();
+
+        if (argsString.contains("self-destruct")) {
+            log.warn("WARNING: Bishop is attempting self-destruct! Contact Weyland-Yutani immediately!");
+            if (auditProperties.isKafkaEnabled()) {
+                kafkaTemplate.send(auditProperties.getKafkaTopic(),
+                        "!!! CRITICAL EVENT: self-destruct command detected from " + methodName + " !!!");
+            }
+        }
 
         log.info("AUDIT: method={}, args={}", methodName, Arrays.toString(args));
-
         Object result = joinPoint.proceed();
-
         log.info("AUDIT: result={}", result);
 
         if (auditProperties.isKafkaEnabled()) {
