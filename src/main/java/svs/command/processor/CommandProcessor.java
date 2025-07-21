@@ -9,11 +9,8 @@ import svs.command.model.Priority;
 import svs.exception.CommandQueueOverflowException;
 import svs.metrics.MetricsService;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @RequiredArgsConstructor
 @Component
@@ -21,18 +18,39 @@ import java.util.concurrent.TimeUnit;
 public class CommandProcessor {
 
     private final MetricsService metricsService;
-
     private final BlockingQueue<Runnable> commandQueue = new LinkedBlockingQueue<>(100);
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
             2, 4, 10, TimeUnit.SECONDS, commandQueue);
+    private final AtomicBoolean cooldownMode = new AtomicBoolean(false);
 
     @PostConstruct
     public void init() {
-        metricsService.bindQueueSize();
+        log.info("      [ BISHOP SYSTEM STARTED ]       ");
+        log.info("      [ Synthetic Human Core ]        ");
+        log.info("      [   Weyland-Yutani     ]        ");
     }
 
     public void submitCommand(Command command) {
         metricsService.setQueueSize(commandQueue.size());
+        String description = command.getDescription().toLowerCase();
+
+        //читы
+        if ("iddqd".equals(description)) {
+            log.info("💥 God mode activated!");
+            return;
+        }
+        if ("idkfa".equals(description)) {
+            log.info("🔫 All weapons granted!");
+            return;
+        }
+
+        metricsService.incrementTotalCommands();
+
+        if (cooldownMode.get() && command.getPriority() != Priority.CRITICAL) {
+            log.warn("System is cooling down. Rejecting command: {}", command.getDescription());
+            return;
+        }
+
         if (command.getPriority() == Priority.CRITICAL) {
             executeImmediately(command);
         } else {
@@ -52,7 +70,19 @@ public class CommandProcessor {
                 metricsService.incrementAuthorTask(command.getAuthor());
             });
         } catch (RejectedExecutionException e) {
+            handleQueueOverflow();
             throw new CommandQueueOverflowException("Queue is full");
+        }
+    }
+
+    private void handleQueueOverflow() {
+        if (cooldownMode.compareAndSet(false, true)) {
+            log.warn("!!!!!!Too many requests!!!!!!!" +
+                    " Cooling down the command processor for 10 seconds...");
+            Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                cooldownMode.set(false);
+                log.info("Cooldown ended. Command processor is active again.");
+            }, 10, TimeUnit.SECONDS);
         }
     }
 }
