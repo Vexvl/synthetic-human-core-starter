@@ -33,7 +33,10 @@ public class AuditAspect {
         if (auditProperties.isKafkaEnabled()) {
             String message = String.format("Method: %s, Args: %s, Result: %s",
                     methodName, Arrays.toString(args), result);
-            kafkaTemplate.send(auditProperties.getKafkaTopic(), message);
+            kafkaTemplate.send(auditProperties.getKafkaTopic(), message).exceptionally(ex -> {
+                log.error("Failed to send audit message kafka sos", ex);
+                return null;
+            });
         }
 
         return result;
