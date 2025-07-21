@@ -36,11 +36,11 @@ public class CommandProcessor {
 
         //читы
         if ("iddqd".equals(description)) {
-            log.info("💥 God mode activated!");
+            log.info("God mode activated!");
             return;
         }
         if ("idkfa".equals(description)) {
-            log.info("🔫 All weapons granted!");
+            log.info("All weapons granted!");
             return;
         }
 
