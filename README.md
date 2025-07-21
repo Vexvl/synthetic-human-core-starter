@@ -14,7 +14,6 @@ Synthetic Human Core Starter - это Spring Boot стартер, который
 - обработка CRITICAL команд сразу, COMMON - через очередь ThreadPoolExecutor;
 - ограничение очереди на 100 задач, выброс `CommandQueueOverflowException` при переполнении;
 - сбор метрик с помощью Micrometer;
-- конфигурация через `application.properties`.
 
 ## Подключение
 
