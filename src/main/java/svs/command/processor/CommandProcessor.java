@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import svs.command.model.Command;
 import svs.command.model.Priority;
+import jakarta.annotation.PreDestroy;
 import svs.exception.CommandQueueOverflowException;
 import svs.metrics.MetricsService;
 
@@ -83,6 +84,22 @@ public class CommandProcessor {
                 cooldownMode.set(false);
                 log.info("Cooldown ended. Command processor is active again.");
             }, 10, TimeUnit.SECONDS);
+        }
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down CommandProcessor...");
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                log.warn("Forcing shutdown of CommandProcessor...");
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            log.error("Interrupted during shutdown, forcing shutdown now.");
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 }
